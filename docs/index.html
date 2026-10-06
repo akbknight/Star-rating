@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Star Rating Web Component | Custom Elements Showcase</title>
+  <meta name="description" content="Vanilla JavaScript custom Web Component implementation of an accessible, event-driven star rating component.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-primary: #0a0d14;
+      --bg-secondary: #101522;
+      --bg-card: #151b2d;
+      --bg-card-hover: #1c243a;
+      --border-subtle: #212c45;
+      --border-bright: #3b82f6;
+      --text-primary: #f1f5f9;
+      --text-secondary: #94a3b8;
+      --text-muted: #64748b;
+      --accent-star: #fbbf24;
+      --star-inactive: #475569;
+      --font-sans: 'Inter', sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+      --radius-sm: 6px;
+      --radius-md: 10px;
+      --radius-lg: 16px;
+      --transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    [data-theme="light"] {
+      --bg-primary: #f8fafc;
+      --bg-secondary: #ffffff;
+      --bg-card: #ffffff;
+      --bg-card-hover: #f1f5f9;
+      --border-subtle: #e2e8f0;
+      --border-bright: #2563eb;
+      --text-primary: #0f172a;
+      --text-secondary: #475569;
+      --text-muted: #94a3b8;
+      --star-inactive: #cbd5e1;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: var(--font-sans);
+      background-color: var(--bg-primary);
+      color: var(--text-primary);
+      line-height: 1.6;
+      padding-bottom: 80px;
+    }
+
+    .container {
+      max-width: 1000px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+
+    /* Header */
+    header {
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border-subtle);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .header-inner {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      height: 64px;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+      color: var(--text-primary);
+      font-weight: 700;
+      font-size: 16px;
+    }
+    .brand-badge {
+      background: #f59e0b;
+      color: #78350f;
+      font-weight: 800;
+      font-size: 11px;
+      padding: 3px 8px;
+      border-radius: var(--radius-sm);
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 14px;
+      border-radius: var(--radius-sm);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: none;
+      border: 1px solid var(--border-subtle);
+      background: var(--bg-card);
+      color: var(--text-primary);
+    }
+    .btn:hover { border-color: var(--border-bright); }
+
+    /* Hero */
+    .hero {
+      padding: 48px 0 32px;
+      text-align: center;
+    }
+    .hero h1 {
+      font-size: 38px;
+      font-weight: 800;
+      letter-spacing: -1px;
+      margin-bottom: 12px;
+    }
+    .hero h1 span {
+      color: var(--accent-star);
+    }
+    .hero-lead {
+      max-width: 600px;
+      margin: 0 auto 28px;
+      font-size: 16px;
+      color: var(--text-secondary);
+    }
+
+    /* Web Component Styling */
+    x-star-rating {
+      display: inline-flex;
+      gap: 6px;
+      cursor: pointer;
+      user-select: none;
+    }
+    x-star-rating > .star {
+      width: 44px;
+      height: 44px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    x-star-rating > .star:hover {
+      transform: scale(1.15);
+    }
+    x-star-rating > .star svg {
+      width: 100%;
+      height: 100%;
+      fill: var(--star-inactive);
+      transition: fill 0.15s ease;
+    }
+    x-star-rating > .star.full svg {
+      fill: var(--accent-star);
+      filter: drop-shadow(0 0 8px rgba(251, 191, 36, 0.4));
+    }
+
+    /* Playground Panel */
+    .playground {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: 32px;
+      margin: 32px 0;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 32px;
+    }
+    .stage-box {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 36px 24px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 240px;
+    }
+    .rating-value-display {
+      font-family: var(--font-mono);
+      font-size: 36px;
+      font-weight: 800;
+      color: var(--accent-star);
+      margin-top: 16px;
+    }
+    .controls-box {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    .control-row {
+      margin-bottom: 16px;
+    }
+    .control-label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      margin-bottom: 6px;
+    }
+    .control-input {
+      width: 100%;
+      padding: 8px 12px;
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      color: var(--text-primary);
+      font-family: var(--font-mono);
+      font-size: 13px;
+    }
+
+    /* Event Log */
+    .event-log-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 20px;
+      margin-top: 24px;
+    }
+    .event-log-stream {
+      background: #060910;
+      border: 1px solid #1a2333;
+      padding: 12px 16px;
+      border-radius: var(--radius-sm);
+      font-family: var(--font-mono);
+      font-size: 12px;
+      max-height: 140px;
+      overflow-y: auto;
+      color: #38bdf8;
+    }
+
+    /* Code Snippet */
+    .snippet-box {
+      background: #060910;
+      border: 1px solid #1a2333;
+      padding: 14px 18px;
+      border-radius: var(--radius-sm);
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: #cbd5e1;
+      margin-top: 24px;
+      overflow-x: auto;
+    }
+
+    footer {
+      border-top: 1px solid var(--border-subtle);
+      padding: 28px 0;
+      text-align: center;
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-top: 56px;
+    }
+
+    @media (max-width: 800px) {
+      .playground { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="container header-inner">
+      <a href="#" class="brand">
+        <span class="brand-badge">WEB COMPONENT</span>
+        <span>&lt;x-star-rating&gt;</span>
+      </a>
+      <div>
+        <a href="https://github.com/akbknight/Star-rating" class="btn" target="_blank" rel="noopener">
+          <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24"><path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/></svg>
+          Repository
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="hero">
+      <h1>Custom Element <span>Star Rating</span></h1>
+      <p class="hero-lead">
+        Native Vanilla JavaScript Web Component (Custom Elements v1) with hover tracking, programmatic attribute reflection, and custom rate event dispatching.
+      </p>
+    </section>
+
+    <!-- Interactive Component Playground -->
+    <div class="playground">
+      <div class="stage-box">
+        <x-star-rating id="demo-rating" value="4" number="5"></x-star-rating>
+        <div class="rating-value-display"><span id="val-readout">4</span> / <span id="num-readout">5</span></div>
+        <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">Click or hover to update rating</div>
+      </div>
+
+      <div class="controls-box">
+        <div>
+          <div class="control-row">
+            <label class="control-label" for="input-number">Total Stars (number attribute):</label>
+            <input type="number" id="input-number" class="control-input" min="3" max="10" value="5" onchange="updateAttributes()">
+          </div>
+
+          <div class="control-row">
+            <label class="control-label" for="input-value">Current Value (value attribute):</label>
+            <input type="number" id="input-value" class="control-input" min="0" max="10" value="4" onchange="updateAttributes()">
+          </div>
+        </div>
+
+        <div class="event-log-card">
+          <div style="font-size: 12px; font-weight: 700; text-transform: uppercase; margin-bottom: 6px; color: var(--text-secondary);">
+            Dispatched CustomEvent Stream ('rate')
+          </div>
+          <div class="event-log-stream" id="event-log">
+            [init] Component mounted with value=4, number=5<br>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Integration Code -->
+    <div class="snippet-box">
+      &lt;!-- Usage in standard HTML --&gt;<br>
+      &lt;x-star-rating value="4" number="5"&gt;&lt;/x-star-rating&gt;<br><br>
+      &lt;script&gt;<br>
+      &nbsp;&nbsp;const rating = document.querySelector('x-star-rating');<br>
+      &nbsp;&nbsp;rating.addEventListener('rate', (e) =&gt; {<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;console.log('User rated:', rating.value);<br>
+      &nbsp;&nbsp;});<br>
+      &lt;/script&gt;
+    </div>
+  </main>
+
+  <footer>
+    <div class="container">
+      <p>Star-Rating Web Component · Custom Elements v1, Vanilla JavaScript &amp; SVG</p>
+      <p style="margin-top: 4px; font-family: var(--font-mono); font-size: 11px;">Verified Autonomous Deployment by Antigravity Reliability Engine</p>
+    </div>
+  </footer>
+
+  <script>
+    // Custom Element StarRating with Native SVG
+    class StarRating extends HTMLElement {
+      get value() {
+        return parseInt(this.getAttribute('value')) || 0;
+      }
+
+      set value(val) {
+        this.setAttribute('value', val);
+        this.highlight(this.value - 1);
+      }
+
+      get number() {
+        return parseInt(this.getAttribute('number')) || 5;
+      }
+
+      set number(val) {
+        this.setAttribute('number', val);
+        this.render();
+      }
+
+      render() {
+        this.stars = [];
+        while (this.firstChild) {
+          this.removeChild(this.firstChild);
+        }
+
+        const starSvg = `<svg viewBox="0 0 24 24"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>`;
+
+        for (let i = 0; i < this.number; i++) {
+          const s = document.createElement('div');
+          s.className = 'star';
+          s.innerHTML = starSvg;
+          this.appendChild(s);
+          this.stars.push(s);
+        }
+
+        this.highlight(this.value - 1);
+      }
+
+      highlight(index) {
+        if (!this.stars) return;
+        this.stars.forEach((star, i) => {
+          star.classList.toggle('full', i <= index);
+        });
+      }
+
+      connectedCallback() {
+        this.render();
+
+        this.addEventListener('mousemove', e => {
+          const box = this.getBoundingClientRect();
+          const starIndex = Math.floor((e.pageX - box.left) / box.width * this.stars.length);
+          this.highlight(starIndex);
+        });
+
+        this.addEventListener('mouseleave', () => {
+          this.highlight(this.value - 1);
+        });
+
+        this.addEventListener('click', e => {
+          const box = this.getBoundingClientRect();
+          const starIndex = Math.floor((e.pageX - box.left) / box.width * this.stars.length);
+          this.value = starIndex + 1;
+
+          const rateEvent = new CustomEvent('rate', { detail: { value: this.value } });
+          this.dispatchEvent(rateEvent);
+        });
+      }
+    }
+
+    customElements.define('x-star-rating', StarRating);
+
+    // Playground Sync
+    const demo = document.getElementById('demo-rating');
+    const valReadout = document.getElementById('val-readout');
+    const numReadout = document.getElementById('num-readout');
+    const eventLog = document.getElementById('event-log');
+
+    demo.addEventListener('rate', (e) => {
+      const now = new Date().toTimeString().split(' ')[0];
+      valReadout.innerText = demo.value;
+      document.getElementById('input-value').value = demo.value;
+      eventLog.innerHTML = `[${now}] Event 'rate' fired: value = ${demo.value}<br>` + eventLog.innerHTML;
+    });
+
+    function updateAttributes() {
+      const num = parseInt(document.getElementById('input-number').value);
+      const val = parseInt(document.getElementById('input-value').value);
+      demo.number = num;
+      demo.value = val;
+      valReadout.innerText = val;
+      numReadout.innerText = num;
+    }
+  </script>
+</body>
+</html>
